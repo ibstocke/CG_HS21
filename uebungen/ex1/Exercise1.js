@@ -69,6 +69,7 @@ function setUpBuffers () {
         0.5, 0.5,
         0.5, 0.0]
 
+    // aktiviert den buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, rectangleObject.buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 }
