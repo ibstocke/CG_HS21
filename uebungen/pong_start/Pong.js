@@ -32,7 +32,15 @@ var consts = {
     yBorderOffset: 15,
     xOffsetBorderToPaddle: 20,
     xPaddleWidth: 10,
-    yPaddleHeight: 70
+    yPaddleHeight: 70,
+    yMaxPaddlePos: 250,
+    yMinPaddlePos: -250
+}
+
+var gameState ={
+    curTime: -1,
+    wins: [0, 0],
+    lastWinner: -1
 }
 
 var gameField = {
@@ -45,7 +53,8 @@ var ball = {
     posXY: [.0, .0],
     dim: [consts.ballDiameter, consts.ballDiameter],
     filled: true,
-    color: [0,1,0,1]
+    color: [0,1,0,1],
+    speedXY: [0.1, 0.02]
 }
 
 var middleLine = {
@@ -59,7 +68,7 @@ var paddleLeft = {
     dim: [consts.xPaddleWidth , consts.yPaddleHeight],
     filled: false,
     color: [1,0,0,1],
-    speed: 4
+    speedY: .3
 }
 
 var paddleRight = {
@@ -67,7 +76,7 @@ var paddleRight = {
     dim: [consts.xPaddleWidth , consts.yPaddleHeight],
     filled: false,
     color: [0,0,1,1],
-    speed: 4
+    speedY: .3
 }
 
 /**
@@ -81,6 +90,7 @@ function startup() {
     window.addEventListener('keyup', onKeyup, false);
     window.addEventListener('keydown', onKeydown, false);
 
+    restartGame()
     window.requestAnimationFrame(drawAnimated);
 }
 
@@ -97,7 +107,6 @@ function initGL() {
     var projectionMat = mat3.create();
     mat3.fromScaling(projectionMat, [2.0/gl.drawingBufferWidth , 2.0/gl.drawingBufferHeight]);
     gl.uniformMatrix3fv(ctx.uProjectionMatId, false, projectionMat);
-
     gl.clearColor(0.1, 0.1, 0.1, 1);
 }
 
@@ -130,25 +139,26 @@ function setUpBuffers(){
 }
 
 function drawAnimated(timeStamp) {
-    calcNewGameState(timeStamp);
-    draw();
+    var deltaTimeMs = 0
+    if (gameState.curTime != -1){
+        deltaTimeMs = timeStamp - gameState.curTime
+    }
+    gameState.curTime = timeStamp
+    if(deltaTimeMs > 0){
+        calcNewGameState(deltaTimeMs)
+        draw()
+    }
+
     window.requestAnimationFrame(drawAnimated);
 }
 
-function calcNewGameState(timeStamp){
-    if(isDown(key.DOWN)){
-        paddleLeft.posXY = [paddleLeft.posXY[0] ,paddleLeft.posXY[1]-paddleLeft.speed];
-    } else if (isDown(key.UP)){
-        paddleLeft.posXY = [paddleLeft.posXY[0] ,paddleLeft.posXY[1]+paddleLeft.speed];
-    }
-}
+
 
 /**
  * Draw the scene.
  */
 function draw() {
     "use strict";
-    console.log("Drawing");
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, rectangleObject.buffer);
@@ -156,10 +166,10 @@ function draw() {
     gl.enableVertexAttribArray(ctx.aVertexPositionId);
 
     drawElement(gameField);
-    drawElement(ball);
     drawElement(middleLine);
     drawElement(paddleLeft);
     drawElement(paddleRight);
+    drawElement(ball);
 }
 
 function drawElement(e){
@@ -201,4 +211,121 @@ function onKeydown(event) {
 
 function onKeyup(event) {
     delete key._pressed[event.keyCode];
+}
+
+function calcNewGameState(deltaTimeMs){
+    ball.posXY[0] += ball.speedXY[0] * deltaTimeMs
+    ball.posXY[1] += ball.speedXY[1] * deltaTimeMs
+
+    var leftIsMovingDown = isDown(key.DOWN)
+    var leftIsMovingUp = isDown(key.UP)
+    var rightIsMovingUp = false
+    var rightIsMovingDown = false
+
+    //move manually paddeLeft
+    if(leftIsMovingDown){
+        paddleLeft.posXY = [paddleLeft.posXY[0] ,paddleLeft.posXY[1]-paddleLeft.speedY*deltaTimeMs];
+        if (paddleLeft.posXY[1] < consts.yMinPaddlePos){
+            paddleLeft.posXY[1] = consts.yMinPaddlePos
+            leftIsMovingDown = false
+        }
+    } else if (leftIsMovingUp) {
+        paddleLeft.posXY = [paddleLeft.posXY[0], paddleLeft.posXY[1] + paddleLeft.speedY * deltaTimeMs];
+        if (paddleLeft.posXY[1] > consts.yMaxPaddlePos) {
+            paddleLeft.posXY[1] = consts.yMaxPaddlePos
+            leftIsMovingUp = false
+        }
+    }
+
+    //move automatically paddleRight
+    if (ball.posXY[0] > -gameField.dim[0]*2/7 && ball.speedXY[0] > 0) {
+        if (ball.posXY[1] > paddleRight.posXY[1] + consts.yPaddleHeight / 8) {
+            paddleRight.posXY[1] = paddleRight.posXY[1] + paddleRight.speedY * deltaTimeMs;
+            rightIsMovingUp = true
+        } else if (ball.posXY[1] < paddleRight.posXY[1] - consts.yPaddleHeight / 8) {
+            paddleRight.posXY = [paddleRight.posXY[0], paddleRight.posXY[1] - paddleRight.speedY * deltaTimeMs];
+            rightIsMovingDown = true
+        }
+    } else if (!isInRange(paddleRight.posXY[1],-10,+10) &&
+        ball.posXY[0]+5*consts.ballDiameter < paddleRight.posXY[0]-consts.xPaddleWidth/2 ) {
+        //move paddle to y middle if ball is heading away
+        if (paddleRight.posXY[1] < 0) {
+            paddleRight.posXY[1] = paddleRight.posXY[1] + paddleRight.speedY * deltaTimeMs
+            rightIsMovingUp = true
+        } else{
+            paddleRight.posXY[1] = paddleRight.posXY[1] - paddleRight.speedY * deltaTimeMs
+            rightIsMovingDown = true
+        }
+    }
+
+    //fit rightPaddle to ranges
+    if (paddleRight.posXY[1] > consts.yMaxPaddlePos) {
+        paddleRight.posXY[1] = consts.yMaxPaddlePos
+        rightIsMovingUp = false
+    } else if (paddleRight.posXY[1] < consts.yMinPaddlePos) {
+        paddleRight.posXY[1] = consts.yMinPaddlePos
+        rightIsMovingDown = false
+    }
+
+
+    //check if ball is hitting paddleLeft
+    if (ball.posXY[0]-consts.ballDiameter/2 <= paddleLeft.posXY[0]+consts.xPaddleWidth/2){
+        if(isInRange(ball.posXY[1],paddleLeft.posXY[1]-consts.yPaddleHeight/2,
+            paddleLeft.posXY[1]+consts.yPaddleHeight/2)){
+            ball.speedXY[0] *= -1.05
+            ball.posXY[0] = paddleLeft.posXY[0]+consts.xPaddleWidth/2+consts.ballDiameter/2+1
+            if(leftIsMovingDown){
+                ball.speedXY[1] -= 0.1
+            } else if(leftIsMovingUp){
+                ball.speedXY[1] += 0.1
+            }
+        }
+    }
+
+    //check if ball is hitting paddleRight
+    if (ball.posXY[0]+consts.ballDiameter/2 >= paddleRight.posXY[0]+consts.xPaddleWidth/2){
+        if(isInRange(ball.posXY[1],paddleRight.posXY[1]-consts.yPaddleHeight/2,
+            paddleRight.posXY[1]+consts.yPaddleHeight/2)){
+            ball.speedXY[0] *= -1.05
+            ball.posXY[0] = paddleRight.posXY[0]-consts.xPaddleWidth/2-consts.ballDiameter/2-1
+            if(rightIsMovingDown){
+                ball.speedXY[1] -= 0.1
+            } else if(rightIsMovingUp){
+                ball.speedXY[1] += 0.1
+            }
+        }
+    }
+
+    //check if ball is hitting y gameBoarders
+    if (ball.posXY[1]+consts.ballDiameter/2 > gameField.dim[1]/2){
+        ball.speedXY[1] *= -1
+        ball.posXY[1] = gameField.dim[1]/2 - consts.ballDiameter/2
+    } else if (ball.posXY[1]-+consts.ballDiameter/2 < -gameField.dim[1]/2){
+        ball.speedXY[1] *= -1
+        ball.posXY[1] = -gameField.dim[1]/2 + consts.ballDiameter/2
+    }
+
+    //check if ball is hitting x gameBoarders
+    if (ball.posXY[0] >= gameField.dim[0]/2){
+        gameState.lastWinner = 0
+        restartGame()
+    } else if (ball.posXY[0] <= -gameField.dim[0]/2){
+        gameState.lastWinner = 1
+        restartGame()
+    }
+}
+
+function isInRange(x, min, max){
+    return x >= min && x <= max
+}
+
+function restartGame(){
+    if (gameState.lastWinner != -1) {
+        gameState.wins[gameState.lastWinner]++
+    }
+
+    ball.posXY = [.0, .0]
+    ball.speedXY = [.15, .02]
+    paddleRight.posXY[1] = .0
+    paddleLeft.posXY[1] = .0
 }
