@@ -22,19 +22,20 @@ var ctx = {
 // we keep all the parameters for drawing a specific object together
 var rectangleObject = {
     buffer: -1
-};
+}
+var circleObject = {
+    buffer: -1
+}
 
 var consts = {
     xDim: 800,
     yDim: 600,
-    ballDiameter: 10,
+    ballDiameter: 20,
     xBorderOffset: 15,
     yBorderOffset: 15,
     xOffsetBorderToPaddle: 20,
     xPaddleWidth: 10,
     yPaddleHeight: 70,
-    yMaxPaddlePos: 250,
-    yMinPaddlePos: -250
 }
 
 var gameState ={
@@ -54,7 +55,8 @@ var ball = {
     dim: [consts.ballDiameter, consts.ballDiameter],
     filled: true,
     color: [0,1,0,1],
-    speedXY: [0.1, 0.02]
+    speedXY: [0.1, 0.02],
+    nOfPoints: 60
 }
 
 var middleLine = {
@@ -136,6 +138,19 @@ function setUpBuffers(){
     rectangleObject.buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, rectangleObject.buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+    var verticesCircle = [0, 0]
+    var angle = 2*Math.PI/ball.nOfPoints
+    for (let i = 0; i < ball.nOfPoints; i++) {
+        verticesCircle.push(.5*Math.cos(angle*i))
+        verticesCircle.push(0.5*Math.sin(angle*i))
+    }
+    verticesCircle.push(.5*Math.cos(0))
+    verticesCircle.push(0.5*Math.sin(0))
+
+    circleObject.buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, circleObject.buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticesCircle), gl.STATIC_DRAW);
 }
 
 function drawAnimated(timeStamp) {
@@ -153,7 +168,6 @@ function drawAnimated(timeStamp) {
 }
 
 
-
 /**
  * Draw the scene.
  */
@@ -161,24 +175,19 @@ function draw() {
     "use strict";
     gl.clear(gl.COLOR_BUFFER_BIT);
 
+    drawRectangle(gameField);
+    drawRectangle(middleLine);
+    drawRectangle(paddleLeft);
+    drawRectangle(paddleRight);
+    drawCircle(ball);
+}
+
+function drawRectangle(e){
     gl.bindBuffer(gl.ARRAY_BUFFER, rectangleObject.buffer);
     gl.vertexAttribPointer(ctx.aVertexPositionId, 2, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(ctx.aVertexPositionId);
 
-    drawElement(gameField);
-    drawElement(middleLine);
-    drawElement(paddleLeft);
-    drawElement(paddleRight);
-    drawElement(ball);
-}
-
-function drawElement(e){
-    if (e.color) {
-        gl.uniform4f(ctx.uColorId, e.color[0], e.color[1], e.color[2], e.color[3]);
-    } else
-    {
-        gl.uniform4f(ctx.uColorId, 1, 1, 1, 1);
-    }
+    setColor(e.color)
 
     var modelMat = mat3.create();
     mat3.fromTranslation(modelMat, e.posXY);
@@ -188,6 +197,29 @@ function drawElement(e){
         gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
     } else {
         gl.drawArrays(gl.LINE_LOOP, 0, 4);
+    }
+}
+
+function drawCircle(e){
+    gl.bindBuffer(gl.ARRAY_BUFFER, circleObject.buffer);
+    gl.vertexAttribPointer(ctx.aVertexPositionId, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(ctx.aVertexPositionId);
+
+    setColor(e.color)
+
+    var modelMat = mat3.create();
+    mat3.fromTranslation(modelMat, e.posXY);
+    mat3.scale(modelMat, modelMat, e.dim);
+    gl.uniformMatrix3fv(ctx.uModelMatId, false, modelMat);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, ball.nOfPoints+2);
+}
+
+function setColor(color){
+    if (color) {
+        gl.uniform4f(ctx.uColorId, color[0], color[1], color[2], color[3]);
+    } else
+    {
+        gl.uniform4f(ctx.uColorId, 1, 1, 1, 1);
     }
 }
 
@@ -221,18 +253,20 @@ function calcNewGameState(deltaTimeMs){
     var leftIsMovingUp = isDown(key.UP)
     var rightIsMovingUp = false
     var rightIsMovingDown = false
+    var maxPaddleLeftPos = gameField.dim[1]/2 - paddleLeft.dim[1]/2
+    var maxPaddleRightPos = gameField.dim[1]/2 - paddleRight.dim[1]/2
 
     //move manually paddeLeft
     if(leftIsMovingDown){
         paddleLeft.posXY = [paddleLeft.posXY[0] ,paddleLeft.posXY[1]-paddleLeft.speedY*deltaTimeMs];
-        if (paddleLeft.posXY[1] < consts.yMinPaddlePos){
-            paddleLeft.posXY[1] = consts.yMinPaddlePos
+        if (paddleLeft.posXY[1] < -maxPaddleLeftPos){
+            paddleLeft.posXY[1] = -maxPaddleLeftPos
             leftIsMovingDown = false
         }
     } else if (leftIsMovingUp) {
         paddleLeft.posXY = [paddleLeft.posXY[0], paddleLeft.posXY[1] + paddleLeft.speedY * deltaTimeMs];
-        if (paddleLeft.posXY[1] > consts.yMaxPaddlePos) {
-            paddleLeft.posXY[1] = consts.yMaxPaddlePos
+        if (paddleLeft.posXY[1] > maxPaddleLeftPos) {
+            paddleLeft.posXY[1] = maxPaddleLeftPos
             leftIsMovingUp = false
         }
     }
@@ -259,19 +293,19 @@ function calcNewGameState(deltaTimeMs){
     }
 
     //fit rightPaddle to ranges
-    if (paddleRight.posXY[1] > consts.yMaxPaddlePos) {
-        paddleRight.posXY[1] = consts.yMaxPaddlePos
+    if (paddleRight.posXY[1] > maxPaddleRightPos) {
+        paddleRight.posXY[1] = maxPaddleRightPos
         rightIsMovingUp = false
-    } else if (paddleRight.posXY[1] < consts.yMinPaddlePos) {
-        paddleRight.posXY[1] = consts.yMinPaddlePos
+    } else if (paddleRight.posXY[1] < -maxPaddleRightPos) {
+        paddleRight.posXY[1] = -maxPaddleRightPos
         rightIsMovingDown = false
     }
 
 
     //check if ball is hitting paddleLeft
     if (ball.posXY[0]-consts.ballDiameter/2 <= paddleLeft.posXY[0]+consts.xPaddleWidth/2){
-        if(isInRange(ball.posXY[1],paddleLeft.posXY[1]-consts.yPaddleHeight/2,
-            paddleLeft.posXY[1]+consts.yPaddleHeight/2)){
+        if(isInRange(ball.posXY[1],paddleLeft.posXY[1]-consts.yPaddleHeight/2-consts.ballDiameter/2*0.7,
+            paddleLeft.posXY[1]+consts.yPaddleHeight/2+consts.ballDiameter/2*0.7)){
             ball.speedXY[0] *= -1.05
             ball.posXY[0] = paddleLeft.posXY[0]+consts.xPaddleWidth/2+consts.ballDiameter/2+1
             if(leftIsMovingDown){
@@ -284,8 +318,8 @@ function calcNewGameState(deltaTimeMs){
 
     //check if ball is hitting paddleRight
     if (ball.posXY[0]+consts.ballDiameter/2 >= paddleRight.posXY[0]+consts.xPaddleWidth/2){
-        if(isInRange(ball.posXY[1],paddleRight.posXY[1]-consts.yPaddleHeight/2,
-            paddleRight.posXY[1]+consts.yPaddleHeight/2)){
+        if(isInRange(ball.posXY[1],paddleRight.posXY[1]-consts.yPaddleHeight/2-consts.ballDiameter/2*0.7,
+            paddleRight.posXY[1]+consts.yPaddleHeight/2+consts.ballDiameter/2*0.7)){
             ball.speedXY[0] *= -1.05
             ball.posXY[0] = paddleRight.posXY[0]-consts.xPaddleWidth/2-consts.ballDiameter/2-1
             if(rightIsMovingDown){
