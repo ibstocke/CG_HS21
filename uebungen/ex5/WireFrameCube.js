@@ -100,15 +100,12 @@ function WireFrameCube (gl, len, posXYZ = [.0,.0,.0], rotAxis = 0) {
             mat4.scale(modelMat,modelMat,[this.len, this.len, this.len])
             if (this.rotAxis == 1){
                 mat4.rotateX(modelMat, modelMat,glMatrix.toRadian(this.angle))
-                gl.viewport(400, 300, 400, 300);
+
             }else if (this.rotAxis == 2){
                 mat4.rotateY(modelMat, modelMat,glMatrix.toRadian(this.angle))
-                gl.viewport(0, 0, 400, 300);
-            }else if (this.rotAxis == 3){
-                mat4.rotateZ(modelMat, modelMat,glMatrix.toRadian(this.angle))
-                gl.viewport(400, 0, 400, 300);
-            }else{
-                gl.viewport(0, 300, 400, 300);
+
+            }else if (this.rotAxis == 3) {
+                mat4.rotateZ(modelMat, modelMat, glMatrix.toRadian(this.angle))
             }
 
             gl.uniformMatrix4fv(uModelMatId, false, modelMat);

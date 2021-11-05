@@ -53,14 +53,14 @@ function initGL(canvas) {
         projectionMat,
         glMatrix.toRadian(45), // fovy
         canvas.clientWidth / canvas.clientHeight,  // aspect
-        0, // near
+        0.1, // near
         20, // far
     );
 
     var viewMat = mat4.create();
     mat4.lookAt(
         viewMat,
-        [-3, 0, 1.5], // eye
+        [3, 0, 1.5], // eye
         [0, 0, 0], // fovy / center
         [0, 0, 1], // up
     );
@@ -68,9 +68,11 @@ function initGL(canvas) {
     gl.uniformMatrix4fv(ctx.uProjectionMatId, false, projectionMat);
     gl.uniformMatrix4fv(ctx.uCameraPosMatrixId, false, viewMat);
 
-    gl.frontFace(gl.CCW); // defines how the front face is drawn
-    gl.cullFace(gl.BACK); // defines which face should be culled
-    gl.enable(gl.CULL_FACE); // enables culling
+    //gl.enable(gl.CULL_FACE); // enables culling
+    gl.enable(gl.DEPTH_TEST);
+    //gl.frontFace(gl.CCW); // defines how the front face is drawn
+    //gl.cullFace(gl.BACK); // defines which face should be culled
+
 
     gl.clearColor(0.1, 0.1, 0.1, 1);
 }
@@ -92,10 +94,10 @@ function setUpAttributesAndUniforms(){
  */
 function setUpObjects(){
     "use strict";
-    objects.cubes.push(new WireFrameCube(gl, 1, [0,0,0],0))
-    objects.cubes.push(new WireFrameCube(gl, 1, [0,0,0],1))
+    //objects.cubes.push(new WireFrameCube(gl, 1, [0,0,0],0))
     objects.cubes.push(new WireFrameCube(gl, 1, [0,0,0],2))
-    objects.cubes.push(new WireFrameCube(gl, 1, [0,0,0],3))
+    objects.cubes.push(new WireFrameCube(gl, 1, [-2,0.4,0],1))
+    objects.cubes.push(new WireFrameCube(gl, 1, [-1.5,-1,-0.3],3))
 }
 
 /**
@@ -104,6 +106,7 @@ function setUpObjects(){
 function draw() {
     "use strict";
     gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
 
     let currAngle = objects.cubes[0].getAngle()
     currAngle += .5
