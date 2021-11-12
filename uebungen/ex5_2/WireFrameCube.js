@@ -9,7 +9,7 @@
 function WireFrameCube (gl, len, posXYZ = [.0,.0,.0], rotAxis = 0, textureFile) {
     function defineVertices(gl) {
     // define the vertices of the cube
-        var red = [0.717,0.071,0.204,1]
+        var red = [0.717, 0.071, 0.204, 1]
         var green = [0,0.608,0.282,1]
         var blue = [0,0.275,0.678,1]
         var white = [1,1,1,1]
@@ -34,31 +34,41 @@ function WireFrameCube (gl, len, posXYZ = [.0,.0,.0], rotAxis = 0, textureFile) 
             [0.0, 1.0]
         ];
 
+        var normals = [
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [0.0, 0.0, -1.0]
+        ]
+
+
         var vertmp =[
-            edges3D[0],white,edges2D[0],
-            edges3D[1],white,edges2D[1],
-            edges3D[2],white,edges2D[2],
-            edges3D[3],white,edges2D[3],
-            edges3D[1],red,edges2D[0],
-            edges3D[4],red,edges2D[1],
-            edges3D[7],red,edges2D[2],
-            edges3D[2],red,edges2D[3],
-            edges3D[4],yellow,edges2D[0],
-            edges3D[5],yellow,edges2D[1],
-            edges3D[6],yellow,edges2D[2],
-            edges3D[7],yellow,edges2D[3],
-            edges3D[5],orange,edges2D[0],
-            edges3D[0],orange,edges2D[1],
-            edges3D[3],orange,edges2D[2],
-            edges3D[6],orange,edges2D[3],
-            edges3D[3],blue,edges2D[0],
-            edges3D[2],blue,edges2D[1],
-            edges3D[7],blue,edges2D[2],
-            edges3D[6],blue,edges2D[3],
-            edges3D[5],green,edges2D[0],
-            edges3D[4],green,edges2D[1],
-            edges3D[1],green,edges2D[2],
-            edges3D[0],green,edges2D[3],
+            edges3D[0],white,edges2D[0],normals[0],
+            edges3D[1],white,edges2D[1],normals[0],
+            edges3D[2],white,edges2D[2],normals[0],
+            edges3D[3],white,edges2D[3],normals[0],
+            edges3D[1],red,edges2D[0],normals[1],
+            edges3D[4],red,edges2D[1],normals[1],
+            edges3D[7],red,edges2D[2],normals[1],
+            edges3D[2],red,edges2D[3],normals[1],
+            edges3D[4],yellow,edges2D[0],normals[2],
+            edges3D[5],yellow,edges2D[1],normals[2],
+            edges3D[6],yellow,edges2D[2],normals[2],
+            edges3D[7],yellow,edges2D[3],normals[2],
+            edges3D[5],orange,edges2D[0],normals[3],
+            edges3D[0],orange,edges2D[1],normals[3],
+            edges3D[3],orange,edges2D[2],normals[3],
+            edges3D[6],orange,edges2D[3],normals[3],
+            edges3D[3],blue,edges2D[0],normals[4],
+            edges3D[2],blue,edges2D[1],normals[4],
+            edges3D[7],blue,edges2D[2],normals[4],
+            edges3D[6],blue,edges2D[3],normals[4],
+            edges3D[5],green,edges2D[0],normals[5],
+            edges3D[4],green,edges2D[1],normals[5],
+            edges3D[1],green,edges2D[2],normals[5],
+            edges3D[0],green,edges2D[3],normals[5],
         ]
         var vertices = [].concat(...vertmp)
 
@@ -149,10 +159,10 @@ function WireFrameCube (gl, len, posXYZ = [.0,.0,.0], rotAxis = 0, textureFile) 
             gl.uniformMatrix4fv(uModelMatId, false, modelMat);
 
             gl.bindBuffer(gl.ARRAY_BUFFER, this.bufferVertices);
-            gl.vertexAttribPointer(aVertexPositionId, 3, gl.FLOAT, false, 36, 0);
+            gl.vertexAttribPointer(aVertexPositionId, 3, gl.FLOAT, false, 48, 0);
             gl.enableVertexAttribArray(aVertexPositionId);
 
-            gl.vertexAttribPointer(aColorId , 4, gl.FLOAT , false , 36, 12);
+            gl.vertexAttribPointer(aColorId , 4, gl.FLOAT , false , 48, 12);
             gl.enableVertexAttribArray(aColorId);
 
             gl.uniform1i(uEnabletextureId, 0);
@@ -162,7 +172,7 @@ function WireFrameCube (gl, len, posXYZ = [.0,.0,.0], rotAxis = 0, textureFile) 
                 gl.bindTexture(gl.TEXTURE_2D, this.texture.textureObj);
                 gl.activeTexture(gl.TEXTURE0);
             }
-            gl.vertexAttribPointer(aVertexTextureCoordId , 2, gl.FLOAT , false , 36, 28);
+            gl.vertexAttribPointer(aVertexTextureCoordId , 2, gl.FLOAT , false , 48, 28);
             gl.enableVertexAttribArray(aVertexTextureCoordId);
 
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bufferTriangles);
