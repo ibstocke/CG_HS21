@@ -14,9 +14,9 @@ varying vec2 vTextureCoord;
 uniform sampler2D uSampler;
 
 
-const float ambientFactor = 0.2;
-const float shininess = 6.0;
-const vec3 specularMaterialColor = vec3(0.3, 0.4, 0.4);
+const float ambientFactor = 0.8;
+const float shininess = 60.0;
+const vec3 specularMaterialColor = vec3(0.7, 0.3, 0.4);
 
 void main() {
     vec3 baseColor = vColor;
@@ -33,7 +33,7 @@ void main() {
         vec3 ambientColor = ambientFactor * baseColor.rgb;
 
         // diffuse lighting
-        float diffuseFactor = 0.5;
+        float diffuseFactor = 0.7;
         vec3 diffuseColor = diffuseFactor * baseColor.rgb * clamp(dot(lightDirectionEye, normal),0.0,1.0) * uLightColor;
 
         // specular lighting
