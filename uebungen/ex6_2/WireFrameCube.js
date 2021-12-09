@@ -172,12 +172,13 @@ function WireFrameCube (gl, len, posXYZ = [.0,.0,.0], rotAxis = 0, textureFile) 
             gl.vertexAttribPointer(aColorId , 4, gl.FLOAT , false , 48, 12);
             gl.enableVertexAttribArray(aColorId);
 
-
             mat4.translate(lookAtMatrix, lookAtMatrix, this.posXYZ);
             mat4.rotate(lookAtMatrix, lookAtMatrix, glMatrix.toRadian(this.angle), this.rotAxis);
-            normalMatrix = mat3.create()
+            var normalMatrix = mat3.create()
             mat3.normalFromMat4(normalMatrix, lookAtMatrix);
             gl.uniformMatrix3fv(uNormalMatrixId, false, normalMatrix);
+            gl.vertexAttribPointer(aVertexNormalId , 3, gl.FLOAT , false , 48, 36);
+            gl.enableVertexAttribArray(aVertexNormalId);
 
             gl.uniform1i(uEnabletextureId, 0);
             if(this.texture) {
@@ -185,16 +186,14 @@ function WireFrameCube (gl, len, posXYZ = [.0,.0,.0], rotAxis = 0, textureFile) 
                 gl.uniform1i(uSamplerId, 0);
                 gl.bindTexture(gl.TEXTURE_2D, this.texture.textureObj);
                 gl.activeTexture(gl.TEXTURE0);
+                gl.vertexAttribPointer(aVertexTextureCoordId , 2, gl.FLOAT , false , 48, 28);
+                gl.enableVertexAttribArray(aVertexTextureCoordId);
             }
-            else
-            gl.vertexAttribPointer(aVertexTextureCoordId , 2, gl.FLOAT , false , 48, 28);
-            gl.enableVertexAttribArray(aVertexTextureCoordId);
-
-            gl.vertexAttribPointer(aVertexNormalId , 3, gl.FLOAT , false , 48, 36);
-            gl.enableVertexAttribArray(aVertexNormalId);
 
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bufferTriangles);
             gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+
+            gl.disableVertexAttribArray(aVertexTextureCoordId);
         }
     }
 }
